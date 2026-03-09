@@ -5,8 +5,11 @@ import '../providers/page_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/cache_provider.dart';
 import '../providers/service_providers.dart';
+import '../models/page_data.dart';
 import '../models/pinned_page.dart';
 import '../widgets/wiki_renderer.dart';
+import '../widgets/browse_view.dart';
+import '../widgets/walkthrough_index_view.dart';
 import '../widgets/cache_action_bar.dart';
 
 class WalkthroughScreen extends ConsumerStatefulWidget {
@@ -45,7 +48,6 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
         const SnackBar(content: Text('Cache deleted')),
       );
     }
-    // Reload from network
     await ref
         .read(pageStateProvider.notifier)
         .loadPage(widget.url, forceRefresh: true);
@@ -56,28 +58,25 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
     if (notifier.isPinned(widget.url)) {
       await notifier.unpin(widget.url);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Page unpinned')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Page unpinned')));
       }
     } else {
       await notifier.pin(PinnedPage(url: widget.url, title: title));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Page pinned')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Page pinned')));
       }
     }
   }
 
-  /// Auto-pin the first page the user ever opens.
   Future<void> _maybeAutoPin(String title) async {
     final settings = ref.read(settingsServiceProvider);
     if (!settings.hasAutopinnedFirstPage) {
       await settings.setAutopinnedFirstPage();
-      await ref.read(pinnedPagesProvider.notifier).pin(
-            PinnedPage(url: widget.url, title: title),
-          );
+      await ref
+          .read(pinnedPagesProvider.notifier)
+          .pin(PinnedPage(url: widget.url, title: title));
     }
   }
 
@@ -85,48 +84,48 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
   Widget build(BuildContext context) {
     final pageState = ref.watch(pageStateProvider);
     final fontSize = ref.watch(fontSizeProvider);
+    final isPinned = ref.watch(pinnedPagesProvider.notifier).isPinned(widget.url);
 
     return Scaffold(
-      appBar: _buildAppBar(pageState),
+      appBar: _buildAppBar(pageState, isPinned),
       body: _buildBody(pageState, fontSize),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(PageState state) {
-    final isPinned = ref.watch(pinnedPagesProvider.notifier).isPinned(widget.url);
+  PreferredSizeWidget _buildAppBar(PageState state, bool isPinned) {
     String title = 'Loading…';
-    if (state is PageLoaded) title = state.page.title;
+    if (state is PageLoaded) title = state.title;
     if (state is PageError) title = 'Error';
 
+    // Only show font controls on chapter pages
+    final isChapter = state is PageLoaded && state.pageData is ChapterData;
+
     return AppBar(
-      title: Text(
-        title,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 14),
-      ),
+      title: Text(title,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 14)),
       actions: [
-        if (state is PageLoaded) ...[
-          // Font size controls
+        if (isChapter) ...[
           IconButton(
             icon: const Icon(Icons.text_decrease, size: 18),
-            tooltip: 'Decrease font',
+            tooltip: 'Smaller text',
             onPressed: () => ref.read(fontSizeProvider.notifier).decrease(),
           ),
           IconButton(
             icon: const Icon(Icons.text_increase, size: 18),
-            tooltip: 'Increase font',
+            tooltip: 'Larger text',
             onPressed: () => ref.read(fontSizeProvider.notifier).increase(),
           ),
-          // Pin toggle
+        ],
+        if (state is PageLoaded)
           IconButton(
             icon: Icon(
               isPinned ? Icons.push_pin : Icons.push_pin_outlined,
               size: 18,
             ),
             tooltip: isPinned ? 'Unpin' : 'Pin',
-            onPressed: () => _togglePin(state.page.title),
+            onPressed: () => _togglePin(state.title),
           ),
-        ],
       ],
     );
   }
@@ -136,41 +135,52 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
       PageIdle() => const Center(child: CircularProgressIndicator()),
       PageLoading() => const Center(child: CircularProgressIndicator()),
       PageError(:final message, :final url) => _buildError(message, url),
-      PageLoaded(:final page, :final fromCache, :final cachedAt) =>
-        _buildContent(page.contentHtml, fromCache, cachedAt, fontSize, page.title),
+      PageLoaded() => _buildLoaded(state, fontSize),
     };
   }
 
-  Widget _buildContent(
-    String html,
-    bool fromCache,
-    DateTime? cachedAt,
-    double fontSize,
-    String title,
-  ) {
-    // Auto-pin on first load
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoPin(title));
+  Widget _buildChapterData(ChapterPageData data, double fontSize) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: WikiRenderer(
+        html: data.processedHtml,
+        fontSize: fontSize,
+        onNavigate: _handleNavigate,
+      ),
+    );
+  }
+
+  Widget _buildLoaded(PageLoaded state, double fontSize) {
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _maybeAutoPin(state.title));
 
     return Column(
       children: [
         CacheActionBar(
-          fromCache: fromCache,
-          cachedAt: cachedAt,
+          fromCache: state.fromCache,
+          cachedAt: state.cachedAt,
           onRefresh: _handleRefresh,
           onDeleteCache: _handleDeleteCache,
         ),
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child: WikiRenderer(
-              html: html,
-              fontSize: fontSize,
-              onNavigate: _handleNavigate,
-            ),
-          ),
+          child: _buildPageContent(state.pageData, state.url, fontSize),
         ),
       ],
     );
+  }
+
+  Widget _buildPageContent(PageData pageData, String url, double fontSize) {
+    return switch (pageData) {
+      BrowseData(:final data) => BrowseView(
+          data: data,
+          onGameTap: (game) => _handleNavigate(game.url),
+        ),
+      IndexData(:final data) => WalkthroughIndexView(
+          data: data,
+          onChapterTap: (chapter) => _handleNavigate(chapter.url),
+        ),
+      ChapterData(:final data) => _buildChapterData(data, fontSize),
+    };
   }
 
   Widget _buildError(String message, String url) {
@@ -182,16 +192,12 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
           children: [
             const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
             const SizedBox(height: 12),
-            Text(
-              'Could not load page',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Could not load page',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(
-              message,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
+            Text(message,
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
               icon: const Icon(Icons.refresh),
@@ -206,3 +212,4 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
     );
   }
 }
+

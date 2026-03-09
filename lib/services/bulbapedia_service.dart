@@ -2,25 +2,21 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 import '../core/constants.dart';
-
-class ParsedPage {
-  final String title;
-  final String contentHtml;
-  final String url;
-
-  const ParsedPage({
-    required this.title,
-    required this.contentHtml,
-    required this.url,
-  });
-}
+import '../models/page_data.dart';
+import 'parsers/browse_parser.dart';
+import 'parsers/index_parser.dart';
+import 'parsers/chapter_preprocessor.dart';
 
 class BulbapediaService {
   static final _client = http.Client();
 
-  /// Fetches a Bulbapedia page and returns its parsed content.
-  /// [url] should be a full URL (mobile or desktop).
-  Future<ParsedPage> fetchPage(String url) async {
+  final _browseParser = BrowseParser();
+  final _indexParser = IndexParser();
+  final _chapterPreprocessor = ChapterPreprocessor();
+
+  /// Fetches a Bulbapedia page and returns typed [PageData].
+  Future<({String title, PageData pageData, String rawHtml})> fetchPage(
+      String url) async {
     final mobileUrl = _toMobileUrl(url);
     final response = await _client.get(
       Uri.parse(mobileUrl),
@@ -35,29 +31,41 @@ class BulbapediaService {
       throw Exception('Failed to load page: HTTP ${response.statusCode}');
     }
 
-    return _parsePage(mobileUrl, response.body);
+    return _parsePage(url, response.body);
   }
 
-  ParsedPage _parsePage(String url, String rawHtml) {
+  ({String title, PageData pageData, String rawHtml}) _parsePage(
+      String url, String rawHtml) {
     final doc = html_parser.parse(rawHtml);
-
-    // Extract page title
     final title = _extractTitle(doc);
-
-    // Extract main content
     final content = _extractContent(doc);
-
-    // Rewrite relative URLs to absolute
     _rewriteUrls(content, kBulbapediaBase);
 
-    // Remove unwanted elements (ads, nav, edit links, etc.)
-    _cleanContent(content);
+    final pageType = detectPageType(url);
+    late PageData pageData;
 
-    return ParsedPage(
-      title: title,
-      contentHtml: content.outerHtml,
-      url: url,
-    );
+    switch (pageType) {
+      case BulbapediaPageType.browse:
+        pageData = BrowseData(_browseParser.parse(content));
+
+      case BulbapediaPageType.walkthroughIndex:
+        pageData = IndexData(_indexParser.parse(content, title));
+
+      case BulbapediaPageType.chapter:
+        // Remove nav noise then preprocess for flutter_html
+        _removeNoise(content);
+        final html = _chapterPreprocessor.process(content);
+        pageData = ChapterData(ChapterPageData(title: title, processedHtml: html));
+    }
+
+    return (title: title, pageData: pageData, rawHtml: rawHtml);
+  }
+
+  /// Re-parses cached raw HTML into [PageData] without a network request.
+  ({String title, PageData pageData}) parseFromCache(
+      String url, String rawHtml) {
+    final result = _parsePage(url, rawHtml);
+    return (title: result.title, pageData: result.pageData);
   }
 
   String _extractTitle(dom.Document doc) {
@@ -65,47 +73,33 @@ class BulbapediaService {
     if (h1 != null) return h1.text.trim();
     final titleTag = doc.querySelector('title');
     if (titleTag != null) {
-      final raw = titleTag.text.trim();
-      return raw.replaceAll(' - Bulbapedia, the community-driven Pokémon encyclopedia', '');
+      return titleTag.text
+          .trim()
+          .replaceAll(
+              ' - Bulbapedia, the community-driven Pokémon encyclopedia', '')
+          .trim();
     }
     return 'Bulbapedia';
   }
 
   dom.Element _extractContent(dom.Document doc) {
-    // Try to find the main article content
-    final selectors = [
-      '.mw-parser-output',
-      '#mw-content-text',
-      '#content',
-      '.content',
-    ];
-
-    for (final sel in selectors) {
+    for (final sel in ['.mw-parser-output', '#mw-content-text', '#content']) {
       final el = doc.querySelector(sel);
       if (el != null) return el;
     }
-
-    // Fallback: return body
     return doc.body ?? doc.createElement('div');
   }
 
   void _rewriteUrls(dom.Element content, String base) {
-    // Rewrite image src
     for (final img in content.querySelectorAll('img[src]')) {
       final src = img.attributes['src']!;
-      if (src.startsWith('//')) {
-        img.attributes['src'] = 'https:$src';
-      } else if (src.startsWith('/')) {
-        img.attributes['src'] = '$base$src';
-      }
+      if (src.startsWith('//')) img.attributes['src'] = 'https:$src';
+      if (src.startsWith('/')) img.attributes['src'] = '$base$src';
     }
-
-    // Rewrite anchor hrefs (mark internal wiki links)
     for (final a in content.querySelectorAll('a[href]')) {
       final href = a.attributes['href']!;
       if (href.startsWith('/wiki/')) {
         a.attributes['href'] = '$kBulbapediaBase$href';
-        a.attributes['data-internal'] = 'true';
       } else if (href.startsWith('//')) {
         a.attributes['href'] = 'https:$href';
       } else if (href.startsWith('/')) {
@@ -114,29 +108,25 @@ class BulbapediaService {
     }
   }
 
-  void _cleanContent(dom.Element content) {
-    // Remove edit links, navigation boxes, ad containers, collapsible nav
-    const removeSelectors = [
+  void _removeNoise(dom.Element content) {
+    for (final sel in [
       '.mw-editsection',
       '.noprint',
-      '.navbox',
       '#catlinks',
       '.printfooter',
       '.mw-empty-elt',
       '[role="navigation"]',
+      '.navbox',
       '.sister-wiki',
-      '.toc',         // table of contents (navigated natively)
+      '.toc',
       '.hatnote',
-    ];
-
-    for (final sel in removeSelectors) {
+    ]) {
       for (final el in content.querySelectorAll(sel)) {
         el.remove();
       }
     }
   }
 
-  /// Normalises a URL to use the mobile Bulbapedia subdomain.
   String _toMobileUrl(String url) {
     return url
         .replaceFirst('https://bulbapedia.bulbagarden.net',
@@ -145,12 +135,9 @@ class BulbapediaService {
             'https://m.bulbapedia.bulbagarden.net');
   }
 
-  /// Returns true if the URL is an internal Bulbapedia wiki page.
-  static bool isInternalWikiUrl(String url) {
-    return url.contains('bulbapedia.bulbagarden.net/wiki/');
-  }
+  static bool isInternalWikiUrl(String url) =>
+      url.contains('bulbapedia.bulbagarden.net/wiki/');
 
-  void dispose() {
-    _client.close();
-  }
+  void dispose() => _client.close();
 }
+

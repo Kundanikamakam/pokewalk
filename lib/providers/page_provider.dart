@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/bulbapedia_service.dart';
+import '../models/page_data.dart';
 import 'service_providers.dart';
 import 'cache_provider.dart';
 
@@ -16,12 +16,16 @@ class PageLoading extends PageState {
 }
 
 class PageLoaded extends PageState {
-  final ParsedPage page;
+  final String title;
+  final String url;
+  final PageData pageData;
   final bool fromCache;
   final DateTime? cachedAt;
 
   const PageLoaded({
-    required this.page,
+    required this.title,
+    required this.url,
+    required this.pageData,
     required this.fromCache,
     this.cachedAt,
   });
@@ -34,7 +38,6 @@ class PageError extends PageState {
   const PageError({required this.message, required this.url});
 }
 
-// Tracks the currently displayed page URL for back-stack awareness
 final currentPageUrlProvider = StateProvider<String?>((ref) => null);
 
 final pageStateProvider =
@@ -55,12 +58,12 @@ class PageNotifier extends Notifier<PageState> {
     if (!forceRefresh) {
       final cached = cacheService.loadPage(url);
       if (cached != null) {
+        final parsed =
+            bulbapediaService.parseFromCache(url, cached.contentHtml);
         state = PageLoaded(
-          page: ParsedPage(
-            title: cached.title,
-            contentHtml: cached.contentHtml,
-            url: url,
-          ),
+          title: parsed.title,
+          url: url,
+          pageData: parsed.pageData,
           fromCache: true,
           cachedAt: cached.fetchedAt,
         );
@@ -69,29 +72,32 @@ class PageNotifier extends Notifier<PageState> {
     }
 
     try {
-      final parsed = await bulbapediaService.fetchPage(url);
+      final result = await bulbapediaService.fetchPage(url);
 
+      // Cache the raw HTML for offline use
       await cacheService.savePage(
         url: url,
-        title: parsed.title,
-        contentHtml: parsed.contentHtml,
+        title: result.title,
+        contentHtml: result.rawHtml,
       );
       ref.read(cachedPagesProvider.notifier).refresh();
 
       state = PageLoaded(
-        page: parsed,
+        title: result.title,
+        url: url,
+        pageData: result.pageData,
         fromCache: false,
       );
     } catch (e) {
-      // If fetch fails, fall back to cache even if we were trying to refresh
+      // Fall back to cache on network failure
       final cached = cacheService.loadPage(url);
       if (cached != null) {
+        final parsed =
+            bulbapediaService.parseFromCache(url, cached.contentHtml);
         state = PageLoaded(
-          page: ParsedPage(
-            title: cached.title,
-            contentHtml: cached.contentHtml,
-            url: url,
-          ),
+          title: parsed.title,
+          url: url,
+          pageData: parsed.pageData,
           fromCache: true,
           cachedAt: cached.fetchedAt,
         );
@@ -104,7 +110,6 @@ class PageNotifier extends Notifier<PageState> {
     }
   }
 
-  void reset() {
-    state = const PageIdle();
-  }
+  void reset() => state = const PageIdle();
 }
+
