@@ -38,25 +38,20 @@ class IndexParser {
       final tds = row.querySelectorAll('td');
 
       if (ths.isNotEmpty && tds.isEmpty) {
-        // Header row: new section
+        // Pure header row (colspan th) → new section
         final headerText = ths.first.text.trim();
-        // Skip the "Contents" title row
         if (headerText == 'Contents') continue;
         if (headerText.isEmpty) continue;
 
-        // Save previous section
         if (currentChapters.isNotEmpty) {
           sections.add(WalkthroughSection(
               title: currentTitle, chapters: currentChapters));
           currentChapters = [];
         }
         currentTitle = headerText;
-      } else if (tds.isNotEmpty) {
-        // Chapter row: first td has link, second td has description
-        final linkTd = tds.first;
-        final descTd = tds.length > 1 ? tds[1] : null;
-
-        final a = linkTd.querySelector('a[href]');
+      } else if (ths.isNotEmpty && tds.isNotEmpty) {
+        // Chapter row: <th> holds the link, <td> holds the description
+        final a = ths.first.querySelector('a[href]');
         if (a == null) continue;
 
         final href = a.attributes['href'] ?? '';
@@ -65,7 +60,28 @@ class IndexParser {
         final chapterName = a.text.trim();
         if (chapterName.isEmpty) continue;
 
-        final description = descTd?.text.trim() ?? '';
+        final description = tds.first.text.trim();
+        final url = href.startsWith('http')
+            ? href
+            : 'https://m.bulbapedia.bulbagarden.net$href';
+
+        currentChapters.add(ChapterEntry(
+          name: chapterName,
+          url: url,
+          description: description,
+        ));
+      } else if (tds.length >= 2) {
+        // Fallback: both columns are <td>
+        final a = tds.first.querySelector('a[href]');
+        if (a == null) continue;
+
+        final href = a.attributes['href'] ?? '';
+        if (!href.contains('/wiki/Walkthrough:')) continue;
+
+        final chapterName = a.text.trim();
+        if (chapterName.isEmpty) continue;
+
+        final description = tds[1].text.trim();
         final url = href.startsWith('http')
             ? href
             : 'https://m.bulbapedia.bulbagarden.net$href';

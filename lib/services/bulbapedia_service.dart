@@ -52,10 +52,15 @@ class BulbapediaService {
         pageData = IndexData(_indexParser.parse(content, title));
 
       case BulbapediaPageType.chapter:
-        // Remove nav noise then preprocess for flutter_html
         _removeNoise(content);
-        final html = _chapterPreprocessor.process(content);
-        pageData = ChapterData(ChapterPageData(title: title, processedHtml: html));
+        final processed = _chapterPreprocessor.process(content);
+        pageData = ChapterData(ChapterPageData(
+          title: title,
+          processedHtml: processed.html,
+          nav: processed.nav,
+          partyContainers: processed.partyContainers,
+          expandableSections: processed.expandableSections,
+        ));
     }
 
     return (title: title, pageData: pageData, rawHtml: rawHtml);

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/page_data.dart';
 import '../services/bulbapedia_service.dart';
+import 'party_container_widget.dart';
+import 'expandable_section_widget.dart';
 
 /// Renders Bulbapedia HTML content natively using Flutter widgets.
 /// Internal wiki links trigger [onNavigate]; external links open the browser.
@@ -10,12 +13,16 @@ class WikiRenderer extends StatelessWidget {
   final String html;
   final double fontSize;
   final void Function(String url) onNavigate;
+  final List<PartyContainerData> partyContainers;
+  final List<ExpandableSectionData> expandableSections;
 
   const WikiRenderer({
     super.key,
     required this.html,
     required this.fontSize,
     required this.onNavigate,
+    this.partyContainers = const [],
+    this.expandableSections = const [],
   });
 
   @override
@@ -26,6 +33,30 @@ class WikiRenderer extends StatelessWidget {
       data: html,
       style: scheme,
       extensions: [
+        TagExtension(
+          tagsToExtend: {'partycontainer'},
+          builder: (ctx) {
+            final idxStr = ctx.styledElement?.element?.attributes['data-idx'] ?? '0';
+            final idx = int.tryParse(idxStr) ?? 0;
+            if (idx >= partyContainers.length) return const SizedBox.shrink();
+            return PartyContainerWidget(
+              data: partyContainers[idx],
+              onNavigate: onNavigate,
+            );
+          },
+        ),
+        TagExtension(
+          tagsToExtend: {'expandablesection'},
+          builder: (ctx) {
+            final idxStr = ctx.styledElement?.element?.attributes['data-idx'] ?? '0';
+            final idx = int.tryParse(idxStr) ?? 0;
+            if (idx >= expandableSections.length) return const SizedBox.shrink();
+            return ExpandableSectionWidget(
+              data: expandableSections[idx],
+              onNavigate: onNavigate,
+            );
+          },
+        ),
         TagExtension(
           tagsToExtend: {'img'},
           builder: (context) {
@@ -76,21 +107,19 @@ class WikiRenderer extends StatelessWidget {
       'p': Style(margin: Margins.only(bottom: 8)),
       'a': Style(color: const Color(0xFF1565C0), textDecoration: TextDecoration.none),
       'table': Style(
-        border: Border.all(color: Colors.grey.shade300),
         margin: Margins.only(bottom: 8),
         backgroundColor: Colors.white,
       ),
       'th': Style(
         backgroundColor: const Color(0xFF3B5BA5),
         color: Colors.white,
-        padding: HtmlPaddings.symmetric(horizontal: 6, vertical: 4),
+        padding: HtmlPaddings.symmetric(horizontal: 4, vertical: 2),
         fontSize: FontSize(fontSize * 0.9),
         fontWeight: FontWeight.bold,
       ),
       'td': Style(
-        padding: HtmlPaddings.symmetric(horizontal: 6, vertical: 4),
+        padding: HtmlPaddings.zero,
         fontSize: FontSize(fontSize * 0.9),
-        border: Border.all(color: Colors.grey.shade200),
       ),
       'li': Style(margin: Margins.only(bottom: 2)),
       'i': Style(fontStyle: FontStyle.italic),
