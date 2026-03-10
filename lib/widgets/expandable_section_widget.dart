@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/page_data.dart';
+import '../providers/settings_provider.dart';
 
 // ── Entry point widget (the tappable card in the chapter page) ────────────────
 
@@ -71,23 +73,23 @@ class ExpandableSectionWidget extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _SectionModal(data: data, color: _color, icon: _icon, onNavigate: onNavigate, fontSize: fontSize),
+      builder: (_) => _SectionModal(data: data, color: _color, icon: _icon, onNavigate: onNavigate),
     );
   }
 }
 
 // ── Modal shell ───────────────────────────────────────────────────────────────
 
-class _SectionModal extends StatelessWidget {
+class _SectionModal extends ConsumerWidget {
   final ExpandableSectionData data;
   final Color color;
   final IconData icon;
   final void Function(String url) onNavigate;
-  final double fontSize;
-  const _SectionModal({required this.data, required this.color, required this.icon, required this.onNavigate, required this.fontSize});
+  const _SectionModal({required this.data, required this.color, required this.icon, required this.onNavigate});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final fontSize = ref.watch(fontSizeProvider);
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.75,
@@ -119,13 +121,13 @@ class _SectionModal extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          Expanded(child: _buildContent(controller)),
+          Expanded(child: _buildContent(controller, fontSize)),
         ],
       ),
     );
   }
 
-  Widget _buildContent(ScrollController controller) {
+  Widget _buildContent(ScrollController controller, double fontSize) {
     return switch (data) {
       TrainersExpandableData d => _TrainersView(trainers: d.trainers, controller: controller, themeColor: color, fontSize: fontSize),
       AvailablePokemonExpandableData d => _AvailablePokemonView(pokemon: d.pokemon, controller: controller, themeColor: color, fontSize: fontSize),
@@ -222,7 +224,7 @@ class _TrainerCard extends StatelessWidget {
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: trainer.pokemon.map((p) => _PokemonChip(pokemon: p)).toList(),
+                children: trainer.pokemon.map((p) => _PokemonChip(pokemon: p, fontSize: fontSize)).toList(),
               ),
             ],
           ],
@@ -234,7 +236,8 @@ class _TrainerCard extends StatelessWidget {
 
 class _PokemonChip extends StatelessWidget {
   final TrainerPokemonEntry pokemon;
-  const _PokemonChip({required this.pokemon});
+  final double fontSize;
+  const _PokemonChip({required this.pokemon, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -251,19 +254,19 @@ class _PokemonChip extends StatelessWidget {
           if (pokemon.imageUrl != null)
             CachedNetworkImage(
               imageUrl: pokemon.imageUrl!,
-              width: 24,
-              height: 24,
-              errorWidget: (_, __, ___) => const Icon(Icons.catching_pokemon, size: 16),
+              width: fontSize + 12,
+              height: fontSize + 12,
+              errorWidget: (_, __, ___) => Icon(Icons.catching_pokemon, size: fontSize),
             ),
           const SizedBox(width: 4),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(pokemon.name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
-              Text('Lv.${pokemon.level}', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+              Text(pokemon.name, style: TextStyle(fontSize: fontSize - 2, fontWeight: FontWeight.w500)),
+              Text('Lv.${pokemon.level}', style: TextStyle(fontSize: fontSize - 3, color: Colors.grey.shade600)),
               if (pokemon.heldItem != null)
-                Text(pokemon.heldItem!, style: TextStyle(fontSize: 10, color: Colors.orange.shade700)),
+                Text(pokemon.heldItem!, style: TextStyle(fontSize: fontSize - 3, color: Colors.orange.shade700)),
             ],
           ),
         ],

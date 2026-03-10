@@ -470,7 +470,8 @@ class _MoreMenuSheetState extends ConsumerState<_MoreMenuSheet> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -596,6 +597,7 @@ class _MoreMenuSheetState extends ConsumerState<_MoreMenuSheet> {
 
           const SizedBox(height: 8),
         ],
+        ),
       ),
     );
   }

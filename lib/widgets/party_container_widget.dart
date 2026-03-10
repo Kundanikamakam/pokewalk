@@ -7,7 +7,12 @@ class PartyContainerWidget extends StatelessWidget {
   final void Function(String url) onNavigate;
   final double fontSize;
 
-  const PartyContainerWidget({super.key, required this.data, required this.onNavigate, this.fontSize = 14.0});
+  const PartyContainerWidget({
+    super.key,
+    required this.data,
+    required this.onNavigate,
+    this.fontSize = 14.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +24,20 @@ class PartyContainerWidget extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 6),
             child: Text(
               data.caption,
-              style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black54, fontSize: 13),
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                color: Colors.black54,
+                fontSize: 13,
+              ),
             ),
           ),
-        ...data.boxes.map((box) => _PartyBoxCard(box: box, onNavigate: onNavigate, fontSize: fontSize)),
+        ...data.boxes.map(
+          (box) => _PartyBoxCard(
+            box: box,
+            onNavigate: onNavigate,
+            fontSize: fontSize,
+          ),
+        ),
         const SizedBox(height: 8),
       ],
     );
@@ -33,18 +48,30 @@ class _PartyBoxCard extends StatelessWidget {
   final PartyBoxData box;
   final void Function(String url) onNavigate;
   final double fontSize;
-  const _PartyBoxCard({required this.box, required this.onNavigate, required this.fontSize});
+  const _PartyBoxCard({
+    required this.box,
+    required this.onNavigate,
+    required this.fontSize,
+  });
 
   @override
   Widget build(BuildContext context) {
     final bgColor = _parseColor(box.bgColor) ?? const Color(0xFFE1E1E1);
+    final onBg = _contrastColor(bgColor);
+    final onBgSubtle = onBg.withValues(alpha: 0.55);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(10),
@@ -57,27 +84,60 @@ class _PartyBoxCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (box.trainerClass != null)
-                    Text(box.trainerClass!, style: TextStyle(fontSize: fontSize - 3, color: Colors.black54)),
+                    Text(
+                      box.trainerClass!,
+                      style: TextStyle(
+                        fontSize: fontSize - 3,
+                        color: onBgSubtle,
+                      ),
+                    ),
                   Text(
                     box.trainerName,
-                    style: TextStyle(fontSize: fontSize + 1, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: fontSize + 1,
+                      fontWeight: FontWeight.bold,
+                      color: onBg,
+                    ),
                   ),
                   if (box.location != null)
-                    Text(box.location!, style: TextStyle(fontSize: fontSize - 2, color: Colors.black54)),
+                    Text(
+                      box.location!,
+                      style: TextStyle(
+                        fontSize: fontSize - 2,
+                        color: onBgSubtle,
+                      ),
+                    ),
                   if (box.reward != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(box.reward!, style: TextStyle(fontSize: fontSize - 2, fontWeight: FontWeight.w500)),
+                      child: Text(
+                        box.reward!,
+                        style: TextStyle(
+                          fontSize: fontSize - 2,
+                          fontWeight: FontWeight.w500,
+                          color: onBg,
+                        ),
+                      ),
                     ),
                 ],
               ),
             ),
             if (box.pokemon.isNotEmpty)
               TextButton.icon(
-                icon: const Icon(Icons.catching_pokemon, size: 16),
-                label: Text('Party (${box.pokemon.length})', style: TextStyle(fontSize: fontSize - 3)),
+                icon: const Icon(
+                  Icons.catching_pokemon,
+                  size: 16,
+                  color: Colors.orange,
+                ),
+                label: Text(
+                  'Party (${box.pokemon.length})',
+                  style: TextStyle(fontSize: fontSize - 3, color: onBg),
+                ),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -94,8 +154,11 @@ class _PartyBoxCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _PartyModal(box: box, onNavigate: onNavigate, fontSize: fontSize),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) =>
+          _PartyModal(box: box, onNavigate: onNavigate, fontSize: fontSize),
     );
   }
 
@@ -104,12 +167,16 @@ class _PartyBoxCard extends StatelessWidget {
     if (m == null) return null;
     try {
       var hex = m.group(1)!;
-      if (hex.length == 3) hex = '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}';
+      if (hex.length == 3)
+        hex = '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}';
       return Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
       return null;
     }
   }
+
+  static Color _contrastColor(Color bg) =>
+      bg.computeLuminance() > 0.35 ? Colors.black87 : Colors.white;
 }
 
 class _TrainerAvatar extends StatelessWidget {
@@ -131,8 +198,10 @@ class _TrainerAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: imageUrl!,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => const Icon(Icons.person, color: Colors.grey),
-                errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.grey),
+                placeholder: (_, __) =>
+                    const Icon(Icons.person, color: Colors.grey),
+                errorWidget: (_, __, ___) =>
+                    const Icon(Icons.person, color: Colors.grey),
               )
             : const Icon(Icons.person, color: Colors.grey),
       ),
@@ -144,7 +213,11 @@ class _PartyModal extends StatelessWidget {
   final PartyBoxData box;
   final void Function(String url) onNavigate;
   final double fontSize;
-  const _PartyModal({required this.box, required this.onNavigate, required this.fontSize});
+  const _PartyModal({
+    required this.box,
+    required this.onNavigate,
+    required this.fontSize,
+  });
 
   static const _typeColors = {
     'Normal': Color(0xFF9FA19F),
@@ -181,7 +254,10 @@ class _PartyModal extends StatelessWidget {
             child: Container(
               width: 40,
               height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           Padding(
@@ -193,7 +269,10 @@ class _PartyModal extends StatelessWidget {
                 Expanded(
                   child: Text(
                     "${box.trainerName}'s Party (${box.pokemon.length})",
-                    style: TextStyle(fontSize: fontSize + 2, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: fontSize + 2,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -210,7 +289,11 @@ class _PartyModal extends StatelessWidget {
               controller: controller,
               padding: const EdgeInsets.all(12),
               itemCount: box.pokemon.length,
-              itemBuilder: (context, i) => _PokemonCard(pokemon: box.pokemon[i], typeColors: _typeColors, fontSize: fontSize),
+              itemBuilder: (context, i) => _PokemonCard(
+                pokemon: box.pokemon[i],
+                typeColors: _typeColors,
+                fontSize: fontSize,
+              ),
             ),
           ),
         ],
@@ -223,7 +306,11 @@ class _PokemonCard extends StatelessWidget {
   final PartyPokemonData pokemon;
   final Map<String, Color> typeColors;
   final double fontSize;
-  const _PokemonCard({required this.pokemon, required this.typeColors, required this.fontSize});
+  const _PokemonCard({
+    required this.pokemon,
+    required this.typeColors,
+    required this.fontSize,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -252,13 +339,19 @@ class _PokemonCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               pokemon.name,
-                              style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: fontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           if (pokemon.level != null)
                             Text(
                               'Lv.${pokemon.level}',
-                              style: TextStyle(fontSize: fontSize - 2, color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: fontSize - 2,
+                                color: Colors.black54,
+                              ),
                             ),
                         ],
                       ),
@@ -267,24 +360,61 @@ class _PokemonCard extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 4),
                           child: Wrap(
                             spacing: 4,
-                            children: pokemon.typeNames.map((t) => _TypeChip(type: t, color: typeColors[t] ?? const Color(0xFF9FA19F), fontSize: fontSize - 3)).toList(),
+                            children: pokemon.typeNames
+                                .map(
+                                  (t) => _TypeChip(
+                                    type: t,
+                                    color:
+                                        typeColors[t] ??
+                                        const Color(0xFF9FA19F),
+                                    fontSize: fontSize - 3,
+                                  ),
+                                )
+                                .toList(),
                           ),
                         ),
-                      if (pokemon.ability != null && pokemon.ability!.isNotEmpty)
+                      if (pokemon.ability != null &&
+                          pokemon.ability!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Row(
                             children: [
-                              Text('Ability: ', style: TextStyle(fontSize: fontSize - 4, color: Colors.black54)),
-                              Text(pokemon.ability!, style: TextStyle(fontSize: fontSize - 4, fontWeight: FontWeight.w500)),
+                              Text(
+                                'Ability: ',
+                                style: TextStyle(
+                                  fontSize: fontSize - 4,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              Text(
+                                pokemon.ability!,
+                                style: TextStyle(
+                                  fontSize: fontSize - 4,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      if (pokemon.heldItem != null && pokemon.heldItem!.isNotEmpty)
+                      if (pokemon.heldItem != null &&
+                          pokemon.heldItem!.isNotEmpty)
                         Row(
                           children: [
-                            Text('Item: ', style: TextStyle(fontSize: fontSize - 4, color: Colors.black54)),
-                            Text(pokemon.heldItem!, style: TextStyle(fontSize: fontSize - 4, color: Colors.orange.shade700, fontWeight: FontWeight.w500)),
+                            Text(
+                              'Item: ',
+                              style: TextStyle(
+                                fontSize: fontSize - 4,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            Text(
+                              pokemon.heldItem!,
+                              style: TextStyle(
+                                fontSize: fontSize - 4,
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                     ],
@@ -295,7 +425,10 @@ class _PokemonCard extends StatelessWidget {
             if (pokemon.moveNames.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: _MovesGrid(moves: pokemon.moveNames, fontSize: fontSize - 3),
+                child: _MovesGrid(
+                  moves: pokemon.moveNames,
+                  fontSize: fontSize - 3,
+                ),
               ),
           ],
         ),
@@ -308,7 +441,8 @@ class _PokemonCard extends StatelessWidget {
     if (m == null) return null;
     try {
       var hex = m.group(1)!;
-      if (hex.length == 3) hex = '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}';
+      if (hex.length == 3)
+        hex = '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}';
       return Color(int.parse('FF$hex', radix: 16));
     } catch (_) {
       return null;
@@ -335,8 +469,16 @@ class _PokemonAvatar extends StatelessWidget {
             ? CachedNetworkImage(
                 imageUrl: imageUrl!,
                 fit: BoxFit.contain,
-                placeholder: (_, __) => const Icon(Icons.catching_pokemon, color: Colors.grey, size: 32),
-                errorWidget: (_, __, ___) => const Icon(Icons.catching_pokemon, color: Colors.grey, size: 32),
+                placeholder: (_, __) => const Icon(
+                  Icons.catching_pokemon,
+                  color: Colors.grey,
+                  size: 32,
+                ),
+                errorWidget: (_, __, ___) => const Icon(
+                  Icons.catching_pokemon,
+                  color: Colors.grey,
+                  size: 32,
+                ),
               )
             : const Icon(Icons.catching_pokemon, color: Colors.grey, size: 32),
       ),
@@ -348,7 +490,11 @@ class _TypeChip extends StatelessWidget {
   final String type;
   final Color color;
   final double fontSize;
-  const _TypeChip({required this.type, required this.color, required this.fontSize});
+  const _TypeChip({
+    required this.type,
+    required this.color,
+    required this.fontSize,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -360,7 +506,11 @@ class _TypeChip extends StatelessWidget {
       ),
       child: Text(
         type,
-        style: TextStyle(fontSize: fontSize - 4, color: Colors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: fontSize - 4,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -376,16 +526,19 @@ class _MovesGrid extends StatelessWidget {
     return Wrap(
       spacing: 4,
       runSpacing: 4,
-      children: moves.map((move) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.black12),
-        ),
-        child: Text(move, style: TextStyle(fontSize: fontSize)),
-      )).toList(),
+      children: moves
+          .map(
+            (move) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: Text(move, style: TextStyle(fontSize: fontSize)),
+            ),
+          )
+          .toList(),
     );
   }
 }
-
