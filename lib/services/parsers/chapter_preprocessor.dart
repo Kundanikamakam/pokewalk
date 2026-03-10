@@ -470,14 +470,22 @@ class ChapterPreprocessor {
       int locationCol = -1;
       int levelCol = -1;
       int headerRowCount = 0;
+      int colOffset = 0;
       for (final row in rows) {
         final ths = row.children.whereType<dom.Element>().where((e) => e.localName == 'th').toList();
         if (ths.isEmpty) break;
         headerRowCount++;
-        for (int c = 0; c < ths.length; c++) {
-          final text = ths[c].text.trim().toLowerCase();
-          if (text == 'location' || text == 'locations') locationCol = c;
-          if (text == 'levels' || text == 'level') levelCol = c;
+        // Only scan first header row for column positions; row 1+ are sub-headers.
+        // Use colspan to correctly map th-index to actual td-index in data rows.
+        if (headerRowCount == 1) {
+          colOffset = 0;
+          for (final th in ths) {
+            final text = th.text.trim().toLowerCase();
+            final colspan = int.tryParse(th.attributes['colspan'] ?? '1') ?? 1;
+            if (text == 'location' || text == 'locations') locationCol = colOffset;
+            if (text == 'levels' || text == 'level') levelCol = colOffset;
+            colOffset += colspan;
+          }
         }
       }
 

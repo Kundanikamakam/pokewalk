@@ -5,8 +5,9 @@ import '../models/page_data.dart';
 class PartyContainerWidget extends StatelessWidget {
   final PartyContainerData data;
   final void Function(String url) onNavigate;
+  final double fontSize;
 
-  const PartyContainerWidget({super.key, required this.data, required this.onNavigate});
+  const PartyContainerWidget({super.key, required this.data, required this.onNavigate, this.fontSize = 14.0});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +22,7 @@ class PartyContainerWidget extends StatelessWidget {
               style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black54, fontSize: 13),
             ),
           ),
-        ...data.boxes.map((box) => _PartyBoxCard(box: box, onNavigate: onNavigate)),
+        ...data.boxes.map((box) => _PartyBoxCard(box: box, onNavigate: onNavigate, fontSize: fontSize)),
         const SizedBox(height: 8),
       ],
     );
@@ -31,7 +32,8 @@ class PartyContainerWidget extends StatelessWidget {
 class _PartyBoxCard extends StatelessWidget {
   final PartyBoxData box;
   final void Function(String url) onNavigate;
-  const _PartyBoxCard({required this.box, required this.onNavigate});
+  final double fontSize;
+  const _PartyBoxCard({required this.box, required this.onNavigate, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -55,17 +57,17 @@ class _PartyBoxCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (box.trainerClass != null)
-                    Text(box.trainerClass!, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                    Text(box.trainerClass!, style: TextStyle(fontSize: fontSize - 3, color: Colors.black54)),
                   Text(
                     box.trainerName,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: fontSize + 1, fontWeight: FontWeight.bold),
                   ),
                   if (box.location != null)
-                    Text(box.location!, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                    Text(box.location!, style: TextStyle(fontSize: fontSize - 2, color: Colors.black54)),
                   if (box.reward != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(box.reward!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                      child: Text(box.reward!, style: TextStyle(fontSize: fontSize - 2, fontWeight: FontWeight.w500)),
                     ),
                 ],
               ),
@@ -73,7 +75,7 @@ class _PartyBoxCard extends StatelessWidget {
             if (box.pokemon.isNotEmpty)
               TextButton.icon(
                 icon: const Icon(Icons.catching_pokemon, size: 16),
-                label: Text('Party (${box.pokemon.length})', style: const TextStyle(fontSize: 11)),
+                label: Text('Party (${box.pokemon.length})', style: TextStyle(fontSize: fontSize - 3)),
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   minimumSize: Size.zero,
@@ -93,7 +95,7 @@ class _PartyBoxCard extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _PartyModal(box: box, onNavigate: onNavigate),
+      builder: (_) => _PartyModal(box: box, onNavigate: onNavigate, fontSize: fontSize),
     );
   }
 
@@ -141,7 +143,8 @@ class _TrainerAvatar extends StatelessWidget {
 class _PartyModal extends StatelessWidget {
   final PartyBoxData box;
   final void Function(String url) onNavigate;
-  const _PartyModal({required this.box, required this.onNavigate});
+  final double fontSize;
+  const _PartyModal({required this.box, required this.onNavigate, required this.fontSize});
 
   static const _typeColors = {
     'Normal': Color(0xFF9FA19F),
@@ -190,7 +193,7 @@ class _PartyModal extends StatelessWidget {
                 Expanded(
                   child: Text(
                     "${box.trainerName}'s Party (${box.pokemon.length})",
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: fontSize + 2, fontWeight: FontWeight.bold),
                   ),
                 ),
                 IconButton(
@@ -207,7 +210,7 @@ class _PartyModal extends StatelessWidget {
               controller: controller,
               padding: const EdgeInsets.all(12),
               itemCount: box.pokemon.length,
-              itemBuilder: (context, i) => _PokemonCard(pokemon: box.pokemon[i], typeColors: _typeColors),
+              itemBuilder: (context, i) => _PokemonCard(pokemon: box.pokemon[i], typeColors: _typeColors, fontSize: fontSize),
             ),
           ),
         ],
@@ -219,7 +222,8 @@ class _PartyModal extends StatelessWidget {
 class _PokemonCard extends StatelessWidget {
   final PartyPokemonData pokemon;
   final Map<String, Color> typeColors;
-  const _PokemonCard({required this.pokemon, required this.typeColors});
+  final double fontSize;
+  const _PokemonCard({required this.pokemon, required this.typeColors, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -248,13 +252,13 @@ class _PokemonCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               pokemon.name,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
                             ),
                           ),
                           if (pokemon.level != null)
                             Text(
                               'Lv.${pokemon.level}',
-                              style: const TextStyle(fontSize: 12, color: Colors.black54),
+                              style: TextStyle(fontSize: fontSize - 2, color: Colors.black54),
                             ),
                         ],
                       ),
@@ -263,7 +267,7 @@ class _PokemonCard extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 4),
                           child: Wrap(
                             spacing: 4,
-                            children: pokemon.typeNames.map((t) => _TypeChip(type: t, color: typeColors[t] ?? const Color(0xFF9FA19F))).toList(),
+                            children: pokemon.typeNames.map((t) => _TypeChip(type: t, color: typeColors[t] ?? const Color(0xFF9FA19F), fontSize: fontSize - 3)).toList(),
                           ),
                         ),
                       if (pokemon.ability != null && pokemon.ability!.isNotEmpty)
@@ -271,16 +275,16 @@ class _PokemonCard extends StatelessWidget {
                           padding: const EdgeInsets.only(top: 2),
                           child: Row(
                             children: [
-                              const Text('Ability: ', style: TextStyle(fontSize: 10, color: Colors.black54)),
-                              Text(pokemon.ability!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
+                              Text('Ability: ', style: TextStyle(fontSize: fontSize - 4, color: Colors.black54)),
+                              Text(pokemon.ability!, style: TextStyle(fontSize: fontSize - 4, fontWeight: FontWeight.w500)),
                             ],
                           ),
                         ),
                       if (pokemon.heldItem != null && pokemon.heldItem!.isNotEmpty)
                         Row(
                           children: [
-                            const Text('Item: ', style: TextStyle(fontSize: 10, color: Colors.black54)),
-                            Text(pokemon.heldItem!, style: TextStyle(fontSize: 10, color: Colors.orange.shade700, fontWeight: FontWeight.w500)),
+                            Text('Item: ', style: TextStyle(fontSize: fontSize - 4, color: Colors.black54)),
+                            Text(pokemon.heldItem!, style: TextStyle(fontSize: fontSize - 4, color: Colors.orange.shade700, fontWeight: FontWeight.w500)),
                           ],
                         ),
                     ],
@@ -291,7 +295,7 @@ class _PokemonCard extends StatelessWidget {
             if (pokemon.moveNames.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: _MovesGrid(moves: pokemon.moveNames),
+                child: _MovesGrid(moves: pokemon.moveNames, fontSize: fontSize - 3),
               ),
           ],
         ),
@@ -343,7 +347,8 @@ class _PokemonAvatar extends StatelessWidget {
 class _TypeChip extends StatelessWidget {
   final String type;
   final Color color;
-  const _TypeChip({required this.type, required this.color});
+  final double fontSize;
+  const _TypeChip({required this.type, required this.color, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -355,7 +360,7 @@ class _TypeChip extends StatelessWidget {
       ),
       child: Text(
         type,
-        style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: fontSize - 4, color: Colors.white, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -363,7 +368,8 @@ class _TypeChip extends StatelessWidget {
 
 class _MovesGrid extends StatelessWidget {
   final List<String> moves;
-  const _MovesGrid({required this.moves});
+  final double fontSize;
+  const _MovesGrid({required this.moves, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +383,7 @@ class _MovesGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.black12),
         ),
-        child: Text(move, style: const TextStyle(fontSize: 10)),
+        child: Text(move, style: TextStyle(fontSize: fontSize)),
       )).toList(),
     );
   }

@@ -7,7 +7,8 @@ import '../models/page_data.dart';
 class ExpandableSectionWidget extends StatelessWidget {
   final ExpandableSectionData data;
   final void Function(String url) onNavigate;
-  const ExpandableSectionWidget({super.key, required this.data, required this.onNavigate});
+  final double fontSize;
+  const ExpandableSectionWidget({super.key, required this.data, required this.onNavigate, this.fontSize = 14.0});
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +29,8 @@ class ExpandableSectionWidget extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(data.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _color)),
-                    Text(_subtitle, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                    Text(data.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize, color: _color)),
+                    Text(_subtitle, style: TextStyle(fontSize: fontSize - 3, color: Colors.black54)),
                   ],
                 ),
               ),
@@ -70,7 +71,7 @@ class ExpandableSectionWidget extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => _SectionModal(data: data, color: _color, icon: _icon, onNavigate: onNavigate),
+      builder: (_) => _SectionModal(data: data, color: _color, icon: _icon, onNavigate: onNavigate, fontSize: fontSize),
     );
   }
 }
@@ -82,7 +83,8 @@ class _SectionModal extends StatelessWidget {
   final Color color;
   final IconData icon;
   final void Function(String url) onNavigate;
-  const _SectionModal({required this.data, required this.color, required this.icon, required this.onNavigate});
+  final double fontSize;
+  const _SectionModal({required this.data, required this.color, required this.icon, required this.onNavigate, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +109,7 @@ class _SectionModal extends StatelessWidget {
               children: [
                 Icon(icon, color: color, size: 20),
                 const SizedBox(width: 8),
-                Expanded(child: Text(data.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                Expanded(child: Text(data.title, style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold))),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),
@@ -125,13 +127,13 @@ class _SectionModal extends StatelessWidget {
 
   Widget _buildContent(ScrollController controller) {
     return switch (data) {
-      TrainersExpandableData d => _TrainersView(trainers: d.trainers, controller: controller, themeColor: color),
-      AvailablePokemonExpandableData d => _AvailablePokemonView(pokemon: d.pokemon, controller: controller, themeColor: color),
-      ItemsExpandableData d => _ItemsView(items: d.items, controller: controller, themeColor: color),
+      TrainersExpandableData d => _TrainersView(trainers: d.trainers, controller: controller, themeColor: color, fontSize: fontSize),
+      AvailablePokemonExpandableData d => _AvailablePokemonView(pokemon: d.pokemon, controller: controller, themeColor: color, fontSize: fontSize),
+      ItemsExpandableData d => _ItemsView(items: d.items, controller: controller, themeColor: color, fontSize: fontSize),
       GenericExpandableData d => SingleChildScrollView(
           controller: controller,
           padding: const EdgeInsets.all(16),
-          child: Text(d.contentHtml, style: const TextStyle(fontSize: 13)),
+          child: Text(d.contentHtml, style: TextStyle(fontSize: fontSize - 1)),
         ),
     };
   }
@@ -143,7 +145,8 @@ class _TrainersView extends StatelessWidget {
   final List<TrainerEntry> trainers;
   final ScrollController controller;
   final Color themeColor;
-  const _TrainersView({required this.trainers, required this.controller, required this.themeColor});
+  final double fontSize;
+  const _TrainersView({required this.trainers, required this.controller, required this.themeColor, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +158,7 @@ class _TrainersView extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       itemCount: trainers.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) => _TrainerCard(trainer: trainers[i], themeColor: themeColor),
+      itemBuilder: (_, i) => _TrainerCard(trainer: trainers[i], themeColor: themeColor, fontSize: fontSize),
     );
   }
 }
@@ -163,7 +166,8 @@ class _TrainersView extends StatelessWidget {
 class _TrainerCard extends StatelessWidget {
   final TrainerEntry trainer;
   final Color themeColor;
-  const _TrainerCard({required this.trainer, required this.themeColor});
+  final double fontSize;
+  const _TrainerCard({required this.trainer, required this.themeColor, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -200,11 +204,11 @@ class _TrainerCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(trainer.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(trainer.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
                       if (trainer.reward != null)
                         Text(
                           'Reward: \$${trainer.reward}',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: fontSize - 2, color: Colors.grey.shade600),
                         ),
                     ],
                   ),
@@ -274,7 +278,8 @@ class _AvailablePokemonView extends StatelessWidget {
   final List<AvailablePokemonEntry> pokemon;
   final ScrollController controller;
   final Color themeColor;
-  const _AvailablePokemonView({required this.pokemon, required this.controller, required this.themeColor});
+  final double fontSize;
+  const _AvailablePokemonView({required this.pokemon, required this.controller, required this.themeColor, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +291,7 @@ class _AvailablePokemonView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: pokemon.length,
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 52),
-      itemBuilder: (_, i) => _PokemonRow(entry: pokemon[i], themeColor: themeColor),
+      itemBuilder: (_, i) => _PokemonRow(entry: pokemon[i], themeColor: themeColor, fontSize: fontSize),
     );
   }
 }
@@ -294,7 +299,8 @@ class _AvailablePokemonView extends StatelessWidget {
 class _PokemonRow extends StatelessWidget {
   final AvailablePokemonEntry entry;
   final Color themeColor;
-  const _PokemonRow({required this.entry, required this.themeColor});
+  final double fontSize;
+  const _PokemonRow({required this.entry, required this.themeColor, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +333,7 @@ class _PokemonRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(entry.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(entry.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
                     if (entry.levelRange != null) ...[
                       const SizedBox(width: 6),
                       Container(
@@ -338,7 +344,7 @@ class _PokemonRow extends StatelessWidget {
                         ),
                         child: Text(
                           'Lv.${entry.levelRange}',
-                          style: TextStyle(fontSize: 10, color: themeColor, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: fontSize - 3, color: themeColor, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -347,7 +353,7 @@ class _PokemonRow extends StatelessWidget {
                 if (entry.location != null && entry.location!.isNotEmpty)
                   Text(
                     entry.location!,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: fontSize - 2, color: Colors.grey.shade600),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -366,7 +372,8 @@ class _ItemsView extends StatelessWidget {
   final List<ItemEntry> items;
   final ScrollController controller;
   final Color themeColor;
-  const _ItemsView({required this.items, required this.controller, required this.themeColor});
+  final double fontSize;
+  const _ItemsView({required this.items, required this.controller, required this.themeColor, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -378,7 +385,7 @@ class _ItemsView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: items.length,
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 44),
-      itemBuilder: (_, i) => _ItemRow(item: items[i], themeColor: themeColor),
+      itemBuilder: (_, i) => _ItemRow(item: items[i], themeColor: themeColor, fontSize: fontSize),
     );
   }
 }
@@ -386,7 +393,8 @@ class _ItemsView extends StatelessWidget {
 class _ItemRow extends StatelessWidget {
   final ItemEntry item;
   final Color themeColor;
-  const _ItemRow({required this.item, required this.themeColor});
+  final double fontSize;
+  const _ItemRow({required this.item, required this.themeColor, required this.fontSize});
 
   @override
   Widget build(BuildContext context) {
@@ -415,9 +423,9 @@ class _ItemRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(item.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
                 if (item.location.isNotEmpty)
-                  Text(item.location, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  Text(item.location, style: TextStyle(fontSize: fontSize - 2, color: Colors.grey.shade600)),
               ],
             ),
           ),

@@ -21,12 +21,10 @@ class ChapterNavWidget extends StatelessWidget {
         : Colors.black87;
 
     return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: bg,
-        border: Border(
-          top: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
-          bottom: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
-        ),
+        borderRadius: BorderRadius.circular(10),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: Row(

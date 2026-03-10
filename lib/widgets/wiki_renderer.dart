@@ -42,6 +42,7 @@ class WikiRenderer extends StatelessWidget {
             return PartyContainerWidget(
               data: partyContainers[idx],
               onNavigate: onNavigate,
+              fontSize: fontSize,
             );
           },
         ),
@@ -54,6 +55,7 @@ class WikiRenderer extends StatelessWidget {
             return ExpandableSectionWidget(
               data: expandableSections[idx],
               onNavigate: onNavigate,
+              fontSize: fontSize,
             );
           },
         ),
