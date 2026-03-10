@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/pinned_page.dart';
 
@@ -62,4 +63,29 @@ class SettingsService {
       pages.map((p) => p.toJsonString()).toList(),
     );
   }
+
+  // ── Orientation ──────────────────────────────────────────────────────────
+
+  /// Returns 'auto', 'portrait', or 'landscape'.
+  String get orientation => _prefs.getString(kPrefOrientation) ?? 'auto';
+
+  Future<void> setOrientation(String value) async {
+    await _prefs.setString(kPrefOrientation, value);
+    _applyOrientation(value);
+  }
+
+  static void _applyOrientation(String value) {
+    switch (value) {
+      case 'portrait':
+        SystemChrome.setPreferredOrientations(
+            [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+      case 'landscape':
+        SystemChrome.setPreferredOrientations(
+            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      default:
+        SystemChrome.setPreferredOrientations([]);
+    }
+  }
+
+  void applyStoredOrientation() => _applyOrientation(orientation);
 }

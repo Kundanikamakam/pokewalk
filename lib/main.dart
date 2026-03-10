@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter/services.dart';
 import 'services/settings_service.dart';
 import 'services/cache_service.dart';
 import 'providers/service_providers.dart';
@@ -10,6 +11,11 @@ import 'core/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
+
   await Hive.initFlutter();
 
   final cacheService = CacheService();
@@ -17,6 +23,7 @@ void main() async {
 
   final settingsService = SettingsService();
   await settingsService.init();
+  settingsService.applyStoredOrientation();
 
   runApp(
     ProviderScope(

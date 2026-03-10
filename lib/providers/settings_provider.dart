@@ -21,6 +21,22 @@ class FontSizeNotifier extends Notifier<double> {
   void decrease() => setSize((state - 1).clamp(11, 22));
 }
 
+final orientationProvider = NotifierProvider<OrientationNotifier, String>(
+  OrientationNotifier.new,
+);
+
+class OrientationNotifier extends Notifier<String> {
+  @override
+  String build() {
+    return ref.read(settingsServiceProvider).orientation;
+  }
+
+  Future<void> set(String value) async {
+    await ref.read(settingsServiceProvider).setOrientation(value);
+    state = value;
+  }
+}
+
 final pinnedPagesProvider =
     NotifierProvider<PinnedPagesNotifier, List<PinnedPage>>(
   PinnedPagesNotifier.new,

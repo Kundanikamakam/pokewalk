@@ -234,7 +234,8 @@ class _WalkthroughScreenState extends ConsumerState<WalkthroughScreen> {
 
   Widget _buildContent(_Loaded state, double fontSize) {
     return switch (state.pageData) {
-      BrowseData(:final data) => BrowseView(
+      BrowseData(:final data) => _BrowseContent(
+          title: state.title,
           data: data,
           onGameTap: (game) => _handleNavigate(game.url),
         ),
@@ -318,6 +319,33 @@ class _FloatingCircleButton extends StatelessWidget {
   }
 }
 
+// ── Browse page content (with inline title) ───────────────────────────────────
+
+class _BrowseContent extends StatelessWidget {
+  final String title;
+  final BrowsePageData data;
+  final void Function(GameEntry) onGameTap;
+
+  const _BrowseContent({required this.title, required this.data, required this.onGameTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, topPad + 12, 16, 8),
+          child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+        ),
+        Expanded(
+          child: BrowseView(data: data, onGameTap: onGameTap),
+        ),
+      ],
+    );
+  }
+}
+
 // ── Index page content ────────────────────────────────────────────────────────
 
 class _IndexContent extends StatelessWidget {
@@ -329,11 +357,12 @@ class _IndexContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 52, 16, 8),
+          padding: EdgeInsets.fromLTRB(16, topPad + 12, 16, 8),
           child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         ),
         Expanded(
@@ -361,11 +390,12 @@ class _ChapterContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
     return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: 12,
         right: 12,
-        top: 12,
+        top: topPad + 8,
         bottom: 80 + MediaQuery.of(context).padding.bottom,
       ),
       child: Column(

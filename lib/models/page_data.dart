@@ -122,11 +122,13 @@ class AvailablePokemonEntry {
   final String? imageUrl;
   final String? location;
   final String? levelRange;
+  final String? rate;
   const AvailablePokemonEntry({
     required this.name,
     this.imageUrl,
     this.location,
     this.levelRange,
+    this.rate,
   });
 }
 

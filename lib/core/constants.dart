@@ -11,3 +11,4 @@ const double kFontSizeDefault = 15.0;
 const String kPrefFontSize = 'font_size';
 const String kPrefPinnedPages = 'pinned_pages';
 const String kPrefFirstPagePinned = 'first_page_pinned';
+const String kPrefOrientation = 'orientation'; // 'auto', 'portrait', 'landscape'

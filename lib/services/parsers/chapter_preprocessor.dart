@@ -19,8 +19,6 @@ class ProcessedChapter {
 /// Rewrites Bulbapedia HTML to be safe for flutter_html rendering.
 class ChapterPreprocessor {
   ProcessedChapter process(dom.Element content) {
-    final expandableCount = content.querySelectorAll('table.expandable').length;
-    debugPrint('[Chapter] expandable tables found: $expandableCount');
     final nav = _extractChapterNav(content);
     _removeProblematicElements(content);
     _fixAllTables(content);
@@ -232,10 +230,23 @@ class ChapterPreprocessor {
       '.sister-wiki',
       'script',
       'style',
+      'hr', // renders as blank line gap in flutter_html
     ]) {
-      for (final el in content.querySelectorAll(sel)) {
+      for (final el in content.querySelectorAll(sel).toList()) {
         el.remove();
       }
+    }
+    // Unwrap <center> — keep text content but remove the centering wrapper
+    for (final el in content.querySelectorAll('center').toList()) {
+      for (final child in el.nodes.toList()) {
+        el.parentNode?.insertBefore(child, el);
+      }
+      el.remove();
+    }
+    // Remove empty block-level divs (e.g. <div style="margin-bottom:1em"></div>)
+    // Only remove divs with NO children at all and no text — never remove image containers.
+    for (final el in content.querySelectorAll('div').toList()) {
+      if (el.nodes.isEmpty) el.remove();
     }
   }
 
@@ -459,8 +470,9 @@ class ChapterPreprocessor {
 
   List<AvailablePokemonEntry> _parseAvailablePokemon(dom.Element expandableTable) {
     final result = <AvailablePokemonEntry>[];
+    final roundyTables = expandableTable.querySelectorAll('table.roundy');
 
-    for (final roundy in expandableTable.querySelectorAll('table.roundy')) {
+    for (final roundy in roundyTables) {
       final tbodyMatches = roundy.children.whereType<dom.Element>()
           .where((e) => e.localName == 'tbody').toList();
       final tbody = tbodyMatches.isNotEmpty ? tbodyMatches.first : roundy;
@@ -470,15 +482,17 @@ class ChapterPreprocessor {
       int locationCol = -1;
       int levelCol = -1;
       int headerRowCount = 0;
-      int colOffset = 0;
       for (final row in rows) {
         final ths = row.children.whereType<dom.Element>().where((e) => e.localName == 'th').toList();
-        if (ths.isEmpty) break;
+        final tds = row.children.whereType<dom.Element>().where((e) => e.localName == 'td').toList();
+        // A true header row has only <th> elements (no <td>).
+        // Data rows may mix <th> (game version markers) and <td>, so stop there.
+        if (ths.isEmpty || tds.isNotEmpty) break;
         headerRowCount++;
-        // Only scan first header row for column positions; row 1+ are sub-headers.
-        // Use colspan to correctly map th-index to actual td-index in data rows.
+        // Scan only the first header row for column positions.
+        // Account for colspan so the computed index matches actual td positions in data rows.
         if (headerRowCount == 1) {
-          colOffset = 0;
+          int colOffset = 0;
           for (final th in ths) {
             final text = th.text.trim().toLowerCase();
             final colspan = int.tryParse(th.attributes['colspan'] ?? '1') ?? 1;
@@ -495,13 +509,24 @@ class ChapterPreprocessor {
         if (tds.isEmpty) continue;
 
         final pkmTd = tds[0];
+        // Real pokemon cells have a nested roundy table for the icon circle.
+        // Legend/note rows only have a plain td — skip them.
+        if (pkmTd.querySelector('table') == null) continue;
         final pkmImg = pkmTd.querySelector('img');
         final pkmImageUrl = pkmImg?.attributes['src'];
-        final pkmName = pkmTd.querySelector('a')?.text.trim() ?? '';
+        // Skip File: / image links; find the actual Pokémon article link.
+        final pkmLink = pkmTd.querySelectorAll('a').where((a) {
+          final href = a.attributes['href'] ?? '';
+          return !href.toLowerCase().contains('file:') &&
+              !href.toLowerCase().contains('special:') &&
+              a.text.trim().isNotEmpty;
+        }).firstOrNull;
+        final pkmName = pkmLink?.text.trim() ?? '';
         if (pkmName.isEmpty) continue;
 
         String? location;
         String? levelRange;
+        String? rate;
 
         if (tds.length > 2) {
           if (locationCol >= 0 && locationCol < tds.length) {
@@ -519,6 +544,10 @@ class ChapterPreprocessor {
           } else if (tds.length > 1) {
             levelRange = tds[tds.length - 2].text.trim();
           }
+
+          // Rate is always the last td
+          final rateTd = tds[tds.length - 1].text.trim();
+          if (rateTd.contains('%')) rate = rateTd;
         }
 
         if (location?.isEmpty == true) location = null;
@@ -530,6 +559,7 @@ class ChapterPreprocessor {
           imageUrl: pkmImageUrl,
           location: location,
           levelRange: levelRange,
+          rate: rate,
         ));
       }
     }

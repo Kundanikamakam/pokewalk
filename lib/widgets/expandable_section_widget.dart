@@ -333,7 +333,29 @@ class _PokemonRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(entry.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize)),
+                    Expanded(
+                      child: Text(entry.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize), overflow: TextOverflow.ellipsis),
+                    ),
+                    if (entry.rate != null) ...[
+                      const SizedBox(width: 4),
+                      Text(entry.rate!, style: TextStyle(fontSize: fontSize - 3, color: Colors.grey.shade500)),
+                    ],
+                  ],
+                ),
+                Row(
+                  children: [
+                    if (entry.location != null && entry.location!.isNotEmpty) ...[
+                      Icon(Icons.terrain, size: fontSize - 2, color: Colors.grey.shade500),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          entry.location!,
+                          style: TextStyle(fontSize: fontSize - 2, color: Colors.grey.shade600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                     if (entry.levelRange != null) ...[
                       const SizedBox(width: 6),
                       Container(
@@ -350,13 +372,6 @@ class _PokemonRow extends StatelessWidget {
                     ],
                   ],
                 ),
-                if (entry.location != null && entry.location!.isNotEmpty)
-                  Text(
-                    entry.location!,
-                    style: TextStyle(fontSize: fontSize - 2, color: Colors.grey.shade600),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
               ],
             ),
           ),

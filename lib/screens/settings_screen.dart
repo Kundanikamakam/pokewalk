@@ -11,6 +11,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fontSize = ref.watch(fontSizeProvider);
+    final orientation = ref.watch(orientationProvider);
     final cachedPages = ref.watch(cachedPagesProvider);
 
     return Scaffold(
@@ -55,6 +56,29 @@ class SettingsScreen extends ConsumerWidget {
                     'Route 2 introduces a new Pokémon: the Dark-type Purrloin.',
                     style: TextStyle(fontSize: fontSize),
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(),
+
+          // ── Orientation ──────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Screen Orientation'),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'auto', icon: Icon(Icons.screen_rotation), label: Text('Auto')),
+                    ButtonSegment(value: 'portrait', icon: Icon(Icons.stay_current_portrait), label: Text('Portrait')),
+                    ButtonSegment(value: 'landscape', icon: Icon(Icons.stay_current_landscape), label: Text('Landscape')),
+                  ],
+                  selected: {orientation},
+                  onSelectionChanged: (s) => ref.read(orientationProvider.notifier).set(s.first),
                 ),
               ],
             ),
